@@ -1,9 +1,14 @@
+#!/usr/bin/python3
+
 import sqlite3
 import csv
 import requests
 import json
 import datetime
 import time
+import configparser
+import os
+
 
 # creating database and setting up connection with the database
 con = sqlite3.connect('dns2.db')
@@ -106,6 +111,38 @@ def check_domain_api(domain, api_key="3845ae0956c6747b865579ef26df781526871a857c
         #writer.writerow([domain, stats.get('harmless'), stats.get('malicious'), stats.get('suspicious'), stats.get('suspicious'), creation_date])
     #time.sleep(15)
 
+def generate_systemd_file():
+
+    cwd = os.getcwd()
+    mainfile = cwd+"/" +  str("main.py")
+    service = "/usr/bin/python3" + " " + mainfile
+
+    config = configparser.RawConfigParser()
+    config.optionxform = str
+
+
+
+    config.add_section("Unit")
+    config.set("Unit", "Description", "DNS Capture")
+    config.set("Unit", "After", "multi-user.target")
+
+    config.add_section("Service")
+    config.set("Service", "Type", "simple")
+    config.set("Service", "Restart", "always")
+    config.set("Service", "ExecStart", service)
+
+
+    config.add_section("Install")
+    config.set("Install", "WantedBy", "multi-user.target")
+
+    with open("/etc/systemd/system/DNS-capture.service", 'w') as example:
+        config.write(example)
+    
+    systemd_daemon_reload_cmd = "systemctl daemon-reload"
+    os.system(systemd_daemon_reload_cmd)
+    service_enable_cmd = "systemctl enable --now DNS-capture.service"
+    os.system(service_enable_cmd)
+
 
 print("                                                                          ")
 print("    ____  _   _______     _____                                           ")
@@ -115,29 +152,56 @@ print(" / /_/ / /|  /___/ /    ___/ / /_/ / / / / / / / / / / / /_/ / /  / /_/ /
 print("/_____/_/ |_//____/____/____/\__,_/_/ /_/ /_/_/ /_/ /_/\__,_/_/   \__, /  ")
 print("                 /_____/                                         /____/   ")
 print("                                                                          ")
-print("Please input the number")
-print("1 => DNS Summary")
-print("2 => Get Sub Domains")
-print("3 => Check Domain")
-print("4 => Suspicious Domain Summary")
-print("Please input the number")
+print(" ")
+print("1 => Enable DNS capture as a service (Linux only)")
+print("2 => DNS Summary")
+print("3 => Get Sub Domains")
+print("4 => Check Domain")
+print("5 => Suspicious Domain Summary")
+print("6 => Exit")
+print(" ")
 
-number = input("Input the Number :")
-if number == str(1):
-    dns_summary()
-elif number == str(2):
-    domain = input("Please enter the domain :")
-    sub_domain_summary(domain)
-elif number == str(3):
-    domain = input("Please enter the domain :")
-    check_domain_api(domain)
+while True:
+    try:
+        number = input("Input the Number :")
+    except ValueError:
+        print("Sorry, I didn't understand that.")
+        continue
 
+    cwd = os.getcwd()
+    dns_sum = cwd+ "/" +  str("DNS_Summary.csv")
 
-elif number == str(4):
-    domain_analysis_summary()
-else:
-    print("Wrong Input")
-
-
+    if number == str(1):
+        try:
+            generate_systemd_file()
+            print("DNS-Capture started as a Service.")
+        except PermissionError:
+            print("You don't seem to have the rights to do that")
+        continue
+    elif number == str(2):
+        dns_summary()
+        print("DNS activity summary file generated ")
+        consent_view = input("Do you want to preview? \n 1) Yes \n 2) No  ")
+        if consent_view == str(1):
+            with open(dns_sum, 'r') as f:
+                print(f.read())
+        else:
+            continue
+    elif number == str(3):
+        domain = input("Please enter the domain :")
+        sub_domain_summary(domain)
+        print("Domain summary file genarated")
+        continue
+    elif number == str(4):
+        domain = input("Please enter the domain :")
+        check_domain_api(domain)
+        continue
+    elif number == str(5):
+        domain_analysis_summary()
+        print("Suspecious domains summary file generated")
+        continue
+    elif number == str(6):
+        print("Exiting")
+        break
 
 

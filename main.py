@@ -5,10 +5,14 @@ import datetime
 import sys
 import sqlite3
 import base64
-
+import os
 # creating database and setting up connection with the database
-con = sqlite3.connect('dns2.db')
+cwd = os.getcwd()
+database = cwd + '/dns2.db'
+print(database)
+con = sqlite3.connect(database)
 cur = con.cursor()
+
 
 # creates the tables dns_queries if does not exist
 cur.execute("""SELECT name FROM sqlite_master WHERE name='dns_queries'""")
@@ -84,7 +88,8 @@ def select_DNS(pkt):
                 """INSERT INTO dns_queries(qry_id, captured_length, qry_name, qry_name_length, qry_request_type, qry_domain) VALUES ('%s', '%s', '%s', '%s', '%s', '%s')"""
                 % (pkt[DNS].id, pkt.len, qname_1, len(qname_1), pkt.getlayer(DNS).qd.qtype, domain))
                 con.commit()
-            f = open("dns_signature_key_list.txt", "r")
+            signature_list = cwd + "/dns_signature_key_list.txt"
+            f = open(signature_list, "r")
             if int(pkt.len) >= 300:
                 print("Limit Exceeded")
                 check_domain_api(x_split_list)
